@@ -106,7 +106,7 @@ function load_configuration {
 }
 
 echo -e "\n"
-read -p "Do you want to install the nrpe plugin? [Y/n]: " config
+read -p "Do you want to load the custom configuration? [Y/n]: " config
 if [ $config ] ; then
 	loop=true
 	while [ $loop == true ] ; do
