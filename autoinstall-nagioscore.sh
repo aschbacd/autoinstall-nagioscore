@@ -1,10 +1,41 @@
 #!/bin/bash
 # created by aschbacd - 06/14/2018
 
+# ///// ******************** FUNCTIONS ******************** ///// #
+
+function print_installing {
+        echo -en "[ ...... ] - installing package $1"
+}
+
+function print_installed {
+        if [ $1 -eq 0 ] ; then
+                echo -en "\r[   \e[32mOK\e[0m   ] - $2 installed successfully"
+        else
+                echo -en "\r[ \e[31mFAILED\e[0m ] - $2 could not be installed"
+        fi
+        echo
+}
+
+function install_package {
+        print_installing $1
+        apt-get install -y $1 1>>install.log 2>>install.error
+        print_installed $? $1
+}
+
 # ///// ******************** NAGIOS4 INSTALLATION ******************** ///// #
 
-# install prerequisites
-apt install -y apache2 apache2-utils php build-essential autoconf gcc libc6 make wget unzip libgd2-xpm-dev
+# install dependencies
+install_package apache2
+install_package apache2-utils
+install_package php
+install_package build-essential
+install_package autoconf
+install_package gcc
+install_package libc6
+install_package make
+install_package wget
+install_package unzip
+install_package libgd2-xpm-dev
 
 # add nagios user & group
 useradd nagios && groupadd nagcmd
@@ -13,9 +44,9 @@ usermod -a -G nagcmd nagios && usermod -a -G nagcmd www-data
 # download and extract nagios4
 mkdir /opt/nagios
 cd /opt/nagios
-wget -O nagioscore.tar.gz https://github.com/NagiosEnterprises/nagioscore/releases/download/nagios-4.3.4/nagios-4.3.4.tar.gz
+wget -O nagioscore.tar.gz https://github.com/NagiosEnterprises/nagioscore/releases/download/nagios-4.4.0/nagios-4.4.0.tar.gz
 tar xzf nagioscore.tar.gz
-cd nagios-4.3.4
+cd nagios-4.4.0
 
 # install and configure nagios4
 ./configure --with-nagios-group=nagios --with-command-group=nagcmd --with-httpd_conf=/etc/apache2/sites-enabled/
@@ -33,14 +64,25 @@ systemctl restart apache2.service
 
 # ///// ******************** NAGIOS4 PLUGINS ******************** ///// #
 
-# install nagios4 plugins
-apt install -y autoconf gcc libc6 libmcrypt-dev make libssl-dev wget bc gawk dc build-essential snmp libnet-snmp-perl gettext
+# install dependencies
+install_package libmcrypt-dev
+install_package libssl-dev
+install_package bc
+install_package gawk
+install_package dc
+install_package snmp
+install_package libnet-snmp-perl
+install_package gettext
+
+# download nagios4 plugins
 cd /opt/nagios
 wget --no-check-certificate -O nagios-plugins.tar.gz https://github.com/nagios-plugins/nagios-plugins/archive/release-2.2.1.tar.gz
 tar zxf nagios-plugins.tar.gz
 cd nagios-plugins-release-2.2.1
 ./tools/setup
 ./configure
+
+# compile nagios4 plugins
 make
 make install
 
