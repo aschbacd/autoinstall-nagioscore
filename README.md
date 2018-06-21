@@ -11,7 +11,7 @@ bash autoinstall-nagioscore.sh
 ```
 
 ### What will be installed?
-* Nagios Core 4.3.4
+* Nagios Core 4.4.0
 * Nagios Plugins 2.2.1
 * NRPE (optional)
 * custom config with predone folder structure (optional)
