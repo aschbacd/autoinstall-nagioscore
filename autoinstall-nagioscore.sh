@@ -199,7 +199,7 @@ fi
 
 if (whiptail --title "Load predone configuration" --yesno "Do you want to load the predone configuration that contains a better organized folder structure for your nagios configuration files?" 8 78) then
 	cd /opt/nagios/
-	download_file "config.tar.gz" "https://github.com/aschbacd/autoinstall-nagioscore/releases/download/1.0/config.tar.gz"
+	download_file "config.tar.gz" "https://github.com/aschbacd/autoinstall-nagioscore/releases/download/4.4.1/config.tar.gz"
 	extract_file "config.tar.gz" "config"
 	cd /usr/local/nagios/etc/
 	execute "removing old configuration" "old configuration removed successfully" "old configuration could not be removed" 0 "rm -r objects cgi.cfg nagios.cfg resource.cfg"
