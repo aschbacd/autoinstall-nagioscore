@@ -68,7 +68,12 @@ function execute {
 function install_package {
 	# PARAMETER 01 ... package name
 	# PARAMETER 02 ... critical command -> 0 ... yes / 1 ... no
-	execute "installing package $1" "package $1 installed successfully" "package $1 could not be installed" $2 "$package_manager install -y $1" "dpkg -s $1"
+	if [ $package_manager == "yum" ] ; then
+		package_check="yum list installed $1"
+	elif [ $package_manager == "apt-get" ] ; then
+		package_check="dpkg -s $1"
+	fi
+	execute "installing package $1" "package $1 installed successfully" "package $1 could not be installed" $2 "$package_manager install -y $1" $package_check
 }
 
 function create_directory {
@@ -94,27 +99,42 @@ function restart_service {
 	# PARAMETER 02 ... critical command -> 0 ... yes / 1 ... no
 	execute "restarting service $1" "service $1 restarted successfully" "service $1 could not be restarted" $2 "systemctl restart $1"
 }
-	
+
 
 # ///// ******************** INITIAL SETUP ******************** ///// #
 base_dir=$(pwd)
 determine_package_manager
-echo "[  INFO  ] package manger $package_manager is being used for all package installations."
+echo "[  INFO  ] package manger $package_manager is being used for all package installations"
+
 
 # ///// ******************** NAGIOS4 INSTALLATION ******************** ///// #
 
 # install dependencies
-install_package apache2 0
-install_package apache2-utils 0
+
+if [ $package_manager == "yum" ] ; then
+	# redhat based
+	install_package httpd 0
+	install_package glibc 0
+	install_package glibc-common 0
+	install_package perl 0
+	install_package gd 0
+	install_package gd-devel 0
+	install_package zip 0
+elif [ $package_manager == "apt-get" ] ; then
+	# debian based
+	install_package apache2 0
+	install_package apache2-utils 0
+	install_package build-essential 0
+	install_package autoconf 0
+	install_package libc6 0
+	install_package libgd-dev 0
+fi
+
 install_package php 0
-install_package build-essential 0
-install_package autoconf 0
 install_package gcc 0
-install_package libc6 0
-install_package make 0
+install_package unzip 0
 install_package wget 0
-install_package unzip 1
-install_package libgd-dev 0
+install_package make 0
 
 # add nagios user
 execute "adding user nagios" "user nagios added successfully" "user nagios could not be added" 0 "useradd nagios" "id -u nagios"
@@ -125,9 +145,12 @@ execute "adding group nagcmd" "group nagcmd added successfully" "group nagcmd co
 # add nagios to nagcmd
 execute "adding nagios to nagcmd" "user nagios successfully added to nagcmd" "user nagios could not be added to nagcmd" 0 "usermod -a -G nagcmd nagios" "groups nagios | grep -w nagcmd"
 
-# add www-data to nagcmd
-execute "adding www-data to nagcmd" "user www-data successfully added to nagcmd" "user www-data could not be added to nagcmd" 1 "usermod -a -G nagcmd www-data" "groups www-data | grep -w nagcmd" 
-
+# add apache user to nagcmd
+if [ $package_manager == "yum" ] ; then
+	execute "adding www-data to nagcmd" "user www-data successfully added to nagcmd" "user www-data could not be added to nagcmd" 1 "usermod -a -G nagcmd apache" "groups apache | grep -w nagcmd"
+elif [ $package_manager == "apt-get" ] ; then
+	execute "adding www-data to nagcmd" "user www-data successfully added to nagcmd" "user www-data could not be added to nagcmd" 1 "usermod -a -G nagcmd www-data" "groups www-data | grep -w nagcmd"
+fi
 
 # download and extract nagios4
 create_directory "/opt/nagios" "nagios download folder"
@@ -137,9 +160,16 @@ extract_file "nagioscore.tar.gz" "nagios-4.4.1"
 cd nagios-4.4.1
 
 # install and configure nagios4
-execute "configuring apache2" "apache2 configured successfully" "apache2 could not be configured" 0 "./configure --with-nagios-group=nagios --with-command-group=nagcmd --with-httpd_conf=/etc/apache2/sites-enabled/"
-execute "compiling nagios4" "nagios4 compiled successfully" "nagios4 could not be compiled" 0 "make all && make install && make install-init && make install-commandmode && make install-config && make install-webconf"
-execute "enabling apache2 modules" "apache2 modules enabled successfully" "apache2 modules could not be enabled" 0 "a2enmod rewrite && a2enmod cgi"
+if [ $package_manager == "yum" ] ; then
+	execute "configuring nagios4" "nagios4 configured successfully" "nagios4 could not be configured" 0 "./configure --with-nagios-group=nagios --with-command-group=nagcmd"
+elif [ $package_manager == "apt-get" ] ; then
+	execute "configuring nagios4" "nagios4 configured successfully" "nagios4 could not be configured" 0 "./configure --with-nagios-group=nagios --with-command-group=nagcmd --with-httpd_conf=/etc/apache2/sites-enabled/"
+fi
+
+execute "compiling nagios4" "nagios4 compiled successfully" "nagios4 could not be compiled" 0 "make all && make install && make install-init && make install-commandmode && make install-config && make install-webconf && make install-exfoliation"
+if [ $package_manager == "apt-get" ] ; then
+	execute "enabling apache2 modules" "apache2 modules enabled successfully" "apache2 modules could not be enabled" 0 "a2enmod rewrite && a2enmod cgi"
+fi
 
 # nagios4 web interface
 loop=true
@@ -156,25 +186,38 @@ while [ $loop == true ] ; do
 done
 
 execute "setting apache2 nagios admin user" "nagios admin user set successfully" "nagios admin user could not be set" 0 "htpasswd -b -c /usr/local/nagios/etc/htpasswd.users nagiosadmin $password1"
-restart_service "apache2" 0
+
+if [ $package_manager == "yum" ] ; then
+	execute "starting service httpd" "service httpd started successfully" "service httpd could not be started" 0 "service httpd start && chkconfig httpd on"
+elif [ $package_manager == "apt-get" ] ; then
+	restart_service "apache2" 0
+fi
+
 
 # ///// ******************** NAGIOS4 PLUGINS ******************** ///// #
 
 # install dependencies
-install_package libmcrypt-dev 0
-install_package libssl-dev 0
-install_package bc 0
-install_package gawk 0
-install_package dc 0
-install_package snmp 0
-install_package libnet-snmp-perl 0
-install_package gettext 0
+if [ $package_manager == "yum" ] ; then
+	install_package automake 0
+	install_package openssl-devel 0
+elif [ $package_manager == "apt-get" ] ; then
+	install_package libmcrypt-dev 0
+	install_package libssl-dev 0
+	install_package bc 0
+	install_package gawk 0
+	install_package dc 0
+	install_package snmp 0
+	install_package libnet-snmp-perl 0
+	install_package gettext 0
+fi
 
 # download nagios4 plugins
 cd /opt/nagios
 download_file "nagios-plugins.tar.gz" "https://github.com/nagios-plugins/nagios-plugins/archive/release-2.2.1.tar.gz"
 extract_file "nagios-plugins.tar.gz" "nagios-plugins-release-2.2.1"
 cd nagios-plugins-release-2.2.1
+
+# configure nagios4 plugins
 execute "configuring nagios4 plugins" "nagios4 plugins configured successfully" "nagios4 plugins could not be configured" 0 "./tools/setup && ./configure"
 
 # compile nagios4 plugins
@@ -182,6 +225,14 @@ execute "compiling nagios4 plugins" "nagios4 plugins compiled successfully" "nag
 
 # start nagios
 execute "starting service nagios" "service nagios started successfully" "service nagios could not be started" 0 "/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg && systemctl enable nagios ; systemctl reload nagios ; systemctl start nagios"
+
+# configuring selinux & firewall
+if [ $package_manager == "yum" ] ; then
+	execute "disabling selinux" "selinux disabled successfully" "selinux could not be disabled" 0 "setenforce 0"
+	execute "adding firewall service http" "http successfully added to firewall" "http could not be added to firewall" 0 "firewall-cmd --permanent --add-service=http"
+	execute "reloading firewall" "firewall reloaded successfully" "firewall could not be reloaded" 0 "firewall-cmd --reload"
+	execute "adding firewall port 80" "port 80 successfully added to firewall" "port 80 could not be added to firewall" 1 "iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT ; systemctl stop firewalld ; systemctl mask firewalld"
+fi
 
 # ///// ******************** [OPTIONAL] NAGIOS4 NRPE PLUGIN ******************** ///// #
 
@@ -208,4 +259,6 @@ if (whiptail --title "Load predone configuration" --yesno "Do you want to load t
 	restart_service "nagios" 0
 fi
 
-echo "[  INFO  ] nagios has been installed correctly. configuration folder /usr/local/nagios"
+echo "[  INFO  ] nagios has been installed correctly"
+echo "[  INFO  ] configuration folder: /usr/local/nagios"
+echo "[  INFO  ] web interface user: nagiosadmin"

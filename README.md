@@ -18,6 +18,7 @@ bash autoinstall-nagioscore.sh
 
 ### Tested linux distributions
 * Debian 9.4
+* CentOS 7.5.1804 (Infrastructure Server)
 
 ## References
 
