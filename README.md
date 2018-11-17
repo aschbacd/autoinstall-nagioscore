@@ -3,7 +3,7 @@ Autoinstall-nagioscore is a shell script that automatically downloads and instal
 
 ## Installation
 
-To install Nagios Core using the autoinstall-nagioscore script just run the following two commands and enjoy. During the installation there will be a password prompt, this sets the password for the Nagios web interface.
+To install Nagios Core using the autoinstall-nagioscore script just run the following two commands and enjoy. Note: During the installation some prompts will appear that require user input.
 
 ```
 wget https://raw.githubusercontent.com/aschbacd/autoinstall-nagioscore/master/autoinstall-nagioscore.sh
