@@ -10,6 +10,12 @@ wget https://raw.githubusercontent.com/aschbacd/autoinstall-nagioscore/master/au
 bash autoinstall-nagioscore.sh
 ```
 
+or
+
+```
+bash <(curl -s https://raw.githubusercontent.com/aschbacd/autoinstall-nagioscore/master/autoinstall-nagioscore.sh)
+```
+
 ### What will be installed?
 * Nagios Core 4.4.0
 * Nagios Plugins 2.2.1
