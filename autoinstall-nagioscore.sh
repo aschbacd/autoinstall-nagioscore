@@ -155,9 +155,9 @@ fi
 # download and extract nagios4
 create_directory "/opt/nagios" "nagios download folder"
 cd /opt/nagios
-download_file "nagioscore.tar.gz" "https://github.com/NagiosEnterprises/nagioscore/releases/download/nagios-4.4.1/nagios-4.4.1.tar.gz"
-extract_file "nagioscore.tar.gz" "nagios-4.4.1"
-cd nagios-4.4.1
+download_file "nagioscore.tar.gz" "https://github.com/NagiosEnterprises/nagioscore/releases/download/nagios-4.4.3/nagios-4.4.3.tar.gz"
+extract_file "nagioscore.tar.gz" "nagios-4.4.3"
+cd nagios-4.4.3
 
 # install and configure nagios4
 if [ $package_manager == "yum" ] ; then
